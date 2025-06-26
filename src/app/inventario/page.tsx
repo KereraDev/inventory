@@ -1,6 +1,6 @@
 'use client';
 import { useState } from "react";
-import styles from "./page.module.css";
+import styles from "./inventario.module.css";
 import { IoCube, IoBusiness, IoWarning } from "react-icons/io5";
 
 const initialProducts = [
@@ -16,7 +16,7 @@ const initialSuppliers = [
   { id: 3, name: "Global Components", contact: "Carlos Ruiz", phone: "555-555-5555", email: "contacto@globalcomp.com", address: "Jr. Comercial 789, Lima" }
 ];
 
-export default function Home() {
+export default function Inventario() {
   const [products] = useState(initialProducts);
   const [suppliers] = useState(initialSuppliers);
 
@@ -29,7 +29,7 @@ export default function Home() {
         <div className={styles.sidebarHeader}>
           <h2 className={styles.sidebarHeaderTitle}>
             <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/bab5cfed-f914-49cb-9aee-cf7ad1e542d0.png" alt="Logo" className={styles.sidebarLogo} />
-            <span>InventarioApp</span>
+            <span>InventarioPro</span>
           </h2>
         </div>
         <ul className={styles.navLinks}>
@@ -40,10 +40,10 @@ export default function Home() {
             </button>
           </li>
           <li>
-            <a href="/inventario" className={styles.navLink}>
+            <button className={styles.navLink}>
               <span className={styles.navIcon}>📦</span>
-              <span>Inventario</span>
-            </a>
+              <span>Productos</span>
+            </button>
           </li>
           <li>
             <button className={styles.navLink}>
@@ -100,49 +100,6 @@ export default function Home() {
             <div className={styles.cardValue}>{lowStockCount}</div>
             <div className={styles.cardFooter}>Productos con stock bajo</div>
           </div>
-        </div>
-        {/* Tabla de productos recientes */}
-        <div className={styles.tableContainer} style={{ marginTop: 30 }}>
-          <div className={styles.cardHeader}>
-            <h3 className={styles.cardTitle}>Últimos Productos</h3>
-            <button className={`${styles.btn} ${styles.btnOutline} ${styles.btnSm}`}>Ver Todos</button>
-          </div>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Producto</th>
-                <th>Categoría</th>
-                <th>Stock</th>
-                <th>Estado</th>
-                <th className={styles.textRight}>Acciones</th>
-              </tr>
-            </thead>
-            <tbody className={styles.tableBody}>
-              {products.slice(-5).reverse().map(product => (
-                <tr key={product.id}>
-                  <td>{product.id}</td>
-                  <td>{product.name}</td>
-                  <td>{product.category}</td>
-                  <td>{product.stock}</td>
-                  <td>
-                    <span className={
-                      `${styles.status} ` +
-                      (product.status === 'in-stock' ? styles.statusInStock : product.status === 'low-stock' ? styles.statusLowStock : styles.statusOutOfStock)
-                    }>
-                      {product.status === 'in-stock' ? 'En Stock' : product.status === 'low-stock' ? 'Bajo Stock' : 'Agotado'}
-                    </span>
-                  </td>
-                  <td className={styles.textRight}>
-                    <div className={styles.actions}>
-                      <button className={`${styles.btn} ${styles.btnOutline} ${styles.btnSm}`}>Editar</button>
-                      <button className={`${styles.btn} ${styles.btnDanger} ${styles.btnSm}`}>Eliminar</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
         {/* Aquí puedes seguir adaptando la tabla y las secciones de productos y proveedores */}
       </main>
