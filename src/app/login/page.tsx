@@ -10,7 +10,7 @@ export default function Login() {
   const router = useRouter();
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    router.push('/');
+    router.push('/dashboard');
   };
   return (
     <div style={{
