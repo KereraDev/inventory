@@ -1,52 +1,16 @@
 'use client';
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useInventory } from "../../InventoryProvider";
+import type { Product } from "../../InventoryProvider";
 import styles from "./inventario.module.css";
-import { IoCube, IoBusiness, IoWarning } from "react-icons/io5";
-
-const initialProducts = [
-  { id: 1, name: "Laptop HP Elite", description: "Laptop de 15 pulgadas con 8GB RAM", category: "Tecnología", price: 1200, stock: 15, supplierId: 1, status: "in-stock", movement: "entrada", quantity: 0 },
-  { id: 2, name: "Mouse Inalámbrico", description: "Mouse ergonómico inalámbrico", category: "Tecnología", price: 25.99, stock: 42, supplierId: 1, status: "in-stock", movement: "entrada", quantity: 0 },
-  { id: 3, name: "Teclado Mecánico", description: "Teclado mecánico retroiluminado", category: "Tecnología", price: 89.99, stock: 5, supplierId: 2, status: "low-stock", movement: "entrada", quantity: 0 },
-  { id: 4, name: "Monitor 24\"", description: "Monitor Full HD 24 pulgadas", category: "Tecnología", price: 199.99, stock: 0, supplierId: 3, status: "out-of-stock", movement: "entrada", quantity: 0 }
-];
-
-const initialSuppliers = [
-  { id: 1, name: "Tech Solutions SA", contact: "Juan Perez", phone: "555-123-4567", email: "info@techsolutions.com", address: "Av. Principal 123, Lima" },
-  { id: 2, name: "Electronic Parts", contact: "Maria Gomez", phone: "555-987-6543", email: "ventas@electronicparts.com", address: "Calle Secundaria 456, Lima" },
-  { id: 3, name: "Global Components", contact: "Carlos Ruiz", phone: "555-555-5555", email: "contacto@globalcomp.com", address: "Jr. Comercial 789, Lima" }
-];
-
-type Movement = {
-  movementId: number; // identificador único del movimiento
-  id: number; // id del producto
-  name: string;
-  description: string;
-  category: string;
-  price: number;
-  quantity: number;
-  supplierId: number;
-  status: string;
-  movement: string;
-};
-
-type Product = {
-  id: number;
-  name: string;
-  description: string;
-  category: string;
-  price: number;
-  stock: number;
-  supplierId: number;
-  status: string;
-  movement: string;
-  quantity: number;
-  minLowStock?: number; // umbral bajo stock
-  minInStock?: number;  // umbral en stock
-};
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 
 export default function Inventario() {
-  const [products, setProducts] = useState(initialProducts);
-  const [suppliers] = useState(initialSuppliers);
+  const { products, setProducts, suppliers, movements, setMovements, movementCounter, setMovementCounter } = useInventory();
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({
     name: '',
@@ -62,8 +26,6 @@ export default function Inventario() {
     minInStock: '10',
   });
   const [editId, setEditId] = useState<number | null>(null);
-  const [movements, setMovements] = useState<Movement[]>([]);
-  const [movementCounter, setMovementCounter] = useState(1);
   const [movementFilters, setMovementFilters] = useState({
     movement: '',
     category: '',
@@ -71,10 +33,14 @@ export default function Inventario() {
     status: '',
   });
   const [movementSort, setMovementSort] = useState({
+    date: '', // '', 'asc', 'desc'
+    time: '',
     id: '', // '', 'asc', 'desc'
     quantity: '',
     price: '',
   });
+  const searchParams = useSearchParams();
+  const [mounted, setMounted] = useState(false);
 
   // Estado inicial de filtros y ordenamiento SOLO con los campos visibles
   const initialMovementFilters = {
@@ -84,10 +50,25 @@ export default function Inventario() {
     status: '',
   };
   const initialMovementSort = {
+    date: '',
+    time: '',
     id: '',
     quantity: '',
     price: '',
   };
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && searchParams.get("modal") === "add") {
+      setShowModal(true);
+      setEditId(null);
+    }
+  }, [mounted, searchParams]);
+
+  if (!mounted) return null;
 
   // Obtener categorías únicas de los movimientos
   const uniqueMovementCategories = Array.from(new Set(movements.map(m => m.category))).filter(Boolean);
@@ -102,7 +83,17 @@ export default function Inventario() {
 
   // Ordenar movimientos filtrados
   let sortedMovements = [...filteredMovements];
-  if (movementSort.id) {
+  if (movementSort.date) {
+    sortedMovements.sort((a, b) => {
+      const dA = a.date.split('/').reverse().join('-');
+      const dB = b.date.split('/').reverse().join('-');
+      return movementSort.date === 'asc' ? dA.localeCompare(dB) : dB.localeCompare(dA);
+    });
+  } else if (movementSort.time) {
+    sortedMovements.sort((a, b) => {
+      return movementSort.time === 'asc' ? a.time.localeCompare(b.time) : b.time.localeCompare(a.time);
+    });
+  } else if (movementSort.id) {
     sortedMovements.sort((a, b) => movementSort.id === 'asc' ? a.id - b.id : b.id - a.id);
   } else if (movementSort.quantity) {
     sortedMovements.sort((a, b) => movementSort.quantity === 'asc' ? a.quantity - b.quantity : b.quantity - a.quantity);
@@ -263,8 +254,10 @@ export default function Inventario() {
       updatedProduct.category = form.category;
       updatedProduct.price = parseFloat(form.price || '0');
       setProducts(products.map((p, idx) => idx === existingIdx ? updatedProduct : p));
-      setMovements([...movements, {
+      setMovements([{ // Cambiado: movimiento al principio
         movementId: movementCounter,
+        date: new Date().toLocaleDateString(), // Solo fecha
+        time: new Date().toLocaleTimeString(), // Solo hora
         id: updatedProduct.id,
         name: updatedProduct.name,
         description: updatedProduct.description,
@@ -274,7 +267,7 @@ export default function Inventario() {
         supplierId: updatedProduct.supplierId,
         status: updatedProduct.status,
         movement: form.movement,
-      }]);
+      }, ...movements]);
       setMovementCounter(movementCounter + 1);
     } else {
       if (form.movement === 'entrada') {
@@ -301,8 +294,10 @@ export default function Inventario() {
         minInStock,
       };
       setProducts([ ...products, newProduct ]);
-      setMovements([...movements, {
+      setMovements([{ // Cambiado: movimiento al principio
         movementId: movementCounter,
+        date: new Date().toLocaleDateString(), // Solo fecha
+        time: new Date().toLocaleTimeString(), // Solo hora
         id: newProduct.id,
         name: newProduct.name,
         description: newProduct.description,
@@ -312,7 +307,7 @@ export default function Inventario() {
         supplierId: newProduct.supplierId,
         status: newProduct.status,
         movement: newProduct.movement,
-      }]);
+      }, ...movements]);
       setMovementCounter(movementCounter + 1);
     }
     closeModal();
@@ -351,8 +346,10 @@ export default function Inventario() {
       minInStock,
     };
     setProducts(products.map(p => p.id === editId ? updatedProduct : p));
-    setMovements([...movements, {
+    setMovements([{ // Cambiado: movimiento al principio
       movementId: movementCounter,
+      date: new Date().toLocaleDateString(), // Solo fecha
+      time: new Date().toLocaleTimeString(), // Solo hora
       id: updatedProduct.id,
       name: updatedProduct.name,
       description: updatedProduct.description,
@@ -362,10 +359,80 @@ export default function Inventario() {
       supplierId: updatedProduct.supplierId,
       status: updatedProduct.status,
       movement: updatedProduct.movement,
-    }]);
+    }, ...movements]);
     setMovementCounter(movementCounter + 1);
     closeModal();
   }
+
+  const handleDeleteProduct = (id: number) => {
+    if (window.confirm('¿Seguro que deseas eliminar este producto?')) {
+      const deletedProduct = products.find(p => p.id === id);
+      if (!deletedProduct) return;
+      setProducts(products.filter(p => p.id !== id));
+      setMovements([
+        {
+          movementId: movementCounter,
+          date: new Date().toLocaleDateString(), // Solo fecha
+          time: new Date().toLocaleTimeString(), // Solo hora
+          id: deletedProduct.id,
+          name: deletedProduct.name,
+          description: deletedProduct.description,
+          category: deletedProduct.category,
+          price: deletedProduct.price,
+          quantity: 0,
+          supplierId: deletedProduct.supplierId,
+          status: 'deleted',
+          movement: 'eliminado',
+        },
+        ...movements,
+      ]);
+      setMovementCounter(movementCounter + 1);
+    }
+  };
+
+  // Exportar movimientos a PDF
+  const exportMovementsToPDF = () => {
+    const doc = new jsPDF();
+    autoTable(doc, {
+      head: [[
+        "Fecha", "Hora", "ID", "Movimiento", "Cantidad", "Producto", "Descripción", "Categoría", "Precio", "Proveedor", "Estado"
+      ]],
+      body: sortedMovements.map(m => [
+        m.date,
+        m.time,
+        m.id,
+        m.movement === 'entrada' ? 'Entrada' : m.movement === 'salida' ? 'Salida' : m.movement,
+        m.quantity,
+        m.name,
+        m.description,
+        m.category,
+        `$${m.price.toFixed(2)}`,
+        suppliers.find(s => s.id === m.supplierId)?.name || 'N/A',
+        m.status === 'in-stock' ? 'En Stock' : m.status === 'low-stock' ? 'Bajo Stock' : m.status === 'out-of-stock' ? 'Agotado' : m.status
+      ]),
+    });
+    doc.save("movimientos.pdf");
+  };
+
+  // Exportar movimientos a Excel
+  const exportMovementsToExcel = () => {
+    const ws = XLSX.utils.json_to_sheet(sortedMovements.map(m => ({
+      Fecha: m.date,
+      Hora: m.time,
+      ID: m.id,
+      Movimiento: m.movement === 'entrada' ? 'Entrada' : m.movement === 'salida' ? 'Salida' : m.movement,
+      Cantidad: m.quantity,
+      Producto: m.name,
+      Descripción: m.description,
+      Categoría: m.category,
+      Precio: m.price,
+      Proveedor: suppliers.find(s => s.id === m.supplierId)?.name || 'N/A',
+      Estado: m.status === 'in-stock' ? 'En Stock' : m.status === 'low-stock' ? 'Bajo Stock' : m.status === 'out-of-stock' ? 'Agotado' : m.status
+    })));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Movimientos");
+    XLSX.writeFile(wb, "movimientos.xlsx");
+  };
 
   return (
     <div className={styles.layout}>
@@ -373,28 +440,42 @@ export default function Inventario() {
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
           <h2 className={styles.sidebarHeaderTitle}>
-            <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/bab5cfed-f914-49cb-9aee-cf7ad1e542d0.png" alt="Logo" className={styles.sidebarLogo} />
+            {/* Nuevo icono tipo inventario */}
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{display:'block'}}>
+              <rect x="3" y="4" width="18" height="4" rx="1.5" fill="#3498db"/>
+              <rect x="3" y="10" width="18" height="4" rx="1.5" fill="#2980b9"/>
+              <rect x="3" y="16" width="18" height="4" rx="1.5" fill="#2471a3"/>
+              <rect x="7" y="6" width="2" height="2" rx="1" fill="#fff"/>
+              <rect x="7" y="12" width="2" height="2" rx="1" fill="#fff"/>
+              <rect x="7" y="18" width="2" height="2" rx="1" fill="#fff"/>
+            </svg>
             <span>InventarioApp</span>
           </h2>
         </div>
         <ul className={styles.navLinks}>
           <li>
-            <a href="/dashboard" className={styles.navLink}>
+            <Link className={styles.navLink} href="/dashboard">
               <span className={styles.navIcon}>📊</span>
               <span>Dashboard</span>
-            </a>
+            </Link>
           </li>
           <li>
-            <a href="/inventario" className={`${styles.navLink} ${styles.navLinkActive}`}>
+            <Link className={styles.navLink} href="/inventario">
               <span className={styles.navIcon}>📦</span>
               <span>Inventario</span>
-            </a>
+            </Link>
           </li>
           <li>
-            <a href="/proveedores" className={styles.navLink}>
+            <Link className={styles.navLink} href="/proveedores">
               <span className={styles.navIcon}>🏭</span>
               <span>Proveedores</span>
-            </a>
+            </Link>
+          </li>
+          <li>
+            <Link className={styles.navLink} href="/lotes">
+              <span className={styles.navIcon}>📦</span>
+              <span>Lotes</span>
+            </Link>
           </li>
         </ul>
       </aside>
@@ -455,6 +536,7 @@ export default function Inventario() {
                     <td className={styles.textRight}>
                       <div className={styles.actions}>
                         <button className={`${styles.btn} ${styles.btnOutline} ${styles.btnSm}`} onClick={() => handleEditProduct(product)}>Editar</button>
+                        <button className={`${styles.btn} ${styles.btnDanger} ${styles.btnSm}`} onClick={() => handleDeleteProduct(product.id)}>Eliminar</button>
                       </div>
                     </td>
                   </tr>
@@ -468,24 +550,56 @@ export default function Inventario() {
         <div className={styles.tableContainer} style={{ marginTop: 32 }}>
           <div className={styles.cardHeader}>
             <h3 className={styles.cardTitle}>Registro de Movimientos</h3>
-            <button
-              className={styles.btn}
-              style={{ marginLeft: 16, padding: '4px 12px', fontSize: 14 }}
-              onClick={() => {
-                setMovementFilters(initialMovementFilters);
-                setMovementSort(initialMovementSort);
-              }}
-              type="button"
-            >
-              Limpiar filtros
-            </button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                className={styles.btn}
+                style={{ marginLeft: 8, padding: '4px 12px', fontSize: 14 }}
+                onClick={() => {
+                  setMovementFilters(initialMovementFilters);
+                  setMovementSort(initialMovementSort);
+                }}
+                type="button"
+              >
+                Limpiar filtros
+              </button>
+            </div>
           </div>
           <table className={styles.table}>
             <thead>
               <tr>
                 <th>
+                  Fecha
+                  <button type="button" style={{marginLeft: 4}} onClick={() => setMovementSort(s => ({
+                    date: s.date === 'asc' ? 'desc' : 'asc',
+                    time: '',
+                    id: '',
+                    quantity: '',
+                    price: ''
+                  }))}>
+                    {movementSort.date === 'asc' ? '▲' : movementSort.date === 'desc' ? '▼' : '↕'}
+                  </button>
+                </th>
+                <th>
+                  Hora
+                  <button type="button" style={{marginLeft: 4}} onClick={() => setMovementSort(s => ({
+                    date: '',
+                    time: s.time === 'asc' ? 'desc' : 'asc',
+                    id: '',
+                    quantity: '',
+                    price: ''
+                  }))}>
+                    {movementSort.time === 'asc' ? '▲' : movementSort.time === 'desc' ? '▼' : '↕'}
+                  </button>
+                </th>
+                <th>
                   <span style={{fontWeight: 500}}>ID</span>
-                  <button type="button" style={{marginLeft: 4}} onClick={() => setMovementSort(s => ({id: s.id === 'asc' ? 'desc' : 'asc', quantity: '', price: ''}))}>
+                  <button type="button" style={{marginLeft: 4}} onClick={() => setMovementSort(s => ({
+                    date: '',
+                    time: '',
+                    id: s.id === 'asc' ? 'desc' : 'asc',
+                    quantity: '',
+                    price: ''
+                  }))}>
                     {movementSort.id === 'asc' ? '▲' : movementSort.id === 'desc' ? '▼' : '↕'}
                   </button>
                 </th>
@@ -503,7 +617,13 @@ export default function Inventario() {
                 </th>
                 <th>
                   <span style={{fontWeight: 500}}>Cantidad</span>
-                  <button type="button" style={{marginLeft: 4}} onClick={() => setMovementSort(s => ({id: '', quantity: s.quantity === 'asc' ? 'desc' : 'asc', price: ''}))}>
+                  <button type="button" style={{marginLeft: 4}} onClick={() => setMovementSort(s => ({
+                    date: '',
+                    time: '',
+                    id: '',
+                    quantity: s.quantity === 'asc' ? 'desc' : 'asc',
+                    price: ''
+                  }))}>
                     {movementSort.quantity === 'asc' ? '▲' : movementSort.quantity === 'desc' ? '▼' : '↕'}
                   </button>
                 </th>
@@ -524,7 +644,13 @@ export default function Inventario() {
                 </th>
                 <th>
                   <span style={{fontWeight: 500}}>Precio</span>
-                  <button type="button" style={{marginLeft: 4}} onClick={() => setMovementSort(s => ({id: '', quantity: '', price: s.price === 'asc' ? 'desc' : 'asc'}))}>
+                  <button type="button" style={{marginLeft: 4}} onClick={() => setMovementSort(s => ({
+                    date: '',
+                    time: '',
+                    id: '',
+                    quantity: '',
+                    price: s.price === 'asc' ? 'desc' : 'asc'
+                  }))}>
                     {movementSort.price === 'asc' ? '▲' : movementSort.price === 'desc' ? '▼' : '↕'}
                   </button>
                 </th>
@@ -566,6 +692,8 @@ export default function Inventario() {
                   const supplier = suppliers.find(s => s.id === movement.supplierId);
                   return (
                     <tr key={movement.movementId}>
+                      <td>{movement.date || '-'}</td>
+                      <td>{movement.time || '-'}</td>
                       <td>{movement.id}</td>
                       <td>{movement.movement === 'entrada' ? 'Entrada' : 'Salida'}</td>
                       <td>{movement.quantity !== undefined ? movement.quantity : '-'}</td>
@@ -588,6 +716,10 @@ export default function Inventario() {
               )}
             </tbody>
           </table>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 24 }}>
+            <button className={styles.btnExportPDF} onClick={exportMovementsToPDF} type="button">PDF</button>
+            <button className={styles.btnExportExcel} onClick={exportMovementsToExcel} type="button">Excel</button>
+          </div>
         </div>
 
         {/* Modal para añadir producto */}

@@ -1,0 +1,280 @@
+/* Estilos mínimos usados en la page de lotes */
+.layout {
+    display: flex;
+    min-height: 100vh;
+    background-color: #f5f7fa;
+}
+
+.sidebar {
+    width: 70px;
+    background-color: var(--primary);
+    color: white;
+    padding: 20px 0;
+    transition: width 0.3s cubic-bezier(.4,0,.2,1);
+    overflow: hidden;
+    position: relative;
+    z-index: 10;
+}
+.sidebar:hover {
+    width: 250px;
+    box-shadow: 2px 0 16px rgba(0,0,0,0.08);
+}
+.sidebarHeader {
+    padding: 0 20px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.sidebarHeaderTitle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.sidebarHeaderTitle span {
+    display: none;
+    transition: opacity 0.2s;
+}
+.sidebar:hover .sidebarHeaderTitle span {
+    display: inline;
+    opacity: 1;
+}
+.navLinks {
+    padding: 20px 0;
+}
+.navLink {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 0;
+    color: var(--light);
+    text-decoration: none;
+    transition: background 0.3s, color 0.3s, padding 0.3s;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    font-size: 1.3rem;
+}
+.sidebar:hover .navLink {
+    justify-content: flex-start;
+    padding: 12px 20px;
+    font-size: 1rem;
+}
+.navLink span {
+    display: none;
+    margin-left: 10px;
+    transition: opacity 0.2s;
+}
+.sidebar:hover .navLink span {
+    display: inline;
+    opacity: 1;
+}
+.mainContent {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+}
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 20px;
+    font-size: 24px;
+    font-weight: bold;
+    color: #ffffff;
+    text-align: center;
+}
+.pageTitle {
+    color: var(--dark);
+    font-size: 1.8rem;
+}
+.formControl {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    font-size: 1rem;
+    background: #f8f9fa;
+    transition: border 0.2s;
+    color: #111;
+}
+.btnPrimary {
+    background-color: transparent;
+    color: var(--secondary);
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.08);
+    border: 1px solid var(--secondary);
+    transition: background 0.2s, box-shadow 0.2s;
+    letter-spacing: 0.5px;
+}
+.btnPrimary:hover {
+    background-color: #217dbb;
+    box-shadow: 0 4px 16px rgba(52, 152, 219, 0.15);
+    color: #fff;
+}
+.btnDanger {
+    background: #e74c3c;
+    color: #fff !important;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.btnDanger:hover {
+    background: #c0392b;
+}
+
+.lotesTable {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(52,152,219,0.06);
+  font-size: 1.08rem;
+  color: #1a2533;
+}
+.lotesTableHeadRow {
+  background: #f8f9fa;
+}
+.lotesTableHead {
+  padding: 14px 12px;
+  text-align: left;
+  font-weight: 700;
+  color: #1a2533;
+  font-size: 1.1rem;
+}
+.lotesTableHeadCenter {
+  padding: 14px 12px;
+  text-align: center;
+  font-weight: 700;
+  color: #1a2533;
+  font-size: 1.1rem;
+}
+.lotesTableRow {
+  border-bottom: 1px solid #e0e0e0;
+}
+.lotesTableCell {
+  padding: 12px;
+  color: #222;
+  font-weight: 500;
+}
+.lotesTableCellCenter {
+  padding: 12px;
+  text-align: center;
+  color: #222;
+  font-weight: 500;
+}
+
+/* Modal styles */
+.modalOverlay {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modalContent {
+  background: #fff;
+  border-radius: 16px;
+  width: 96vw;
+  max-width: 1400px;
+  min-width: 320px;
+  max-height: 75vh;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+  padding: 32px 24px 24px 24px;
+  color: #1a2533;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+@media (max-width: 900px) {
+  .modalContent {
+    width: 99vw;
+    max-width: 99vw;
+    padding: 12px 2vw;
+  }
+}
+.modalTitle {
+  margin-bottom: 16px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #217dbb;
+}
+.modalList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.modalListItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 1.05rem;
+  color: #222;
+}
+.modalProductName {
+  font-weight: 500;
+}
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+.modalTableWrapper {
+  overflow-x: auto;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.lotesTableModal {
+  min-width: 600px;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  margin-bottom: 16px;
+}
+
+.lotesTableModal th, .lotesTableModal td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.lotesTableModal th {
+  background: #f5f7fa;
+  font-weight: 600;
+}
+
+.lotesTableModal tr:last-child td {
+  border-bottom: none;
+}
+
+.lotesTableModal input[type="number"] {
+  width: 60px;
+  padding: 4px 6px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+/* Mejorar contraste y visibilidad de letras en general */
+.lotesTable, .modalContent, .lotesTableCell, .lotesTableCellCenter, .modalListItem, .modalTitle {
+  color: #1a2533 !important;
+  font-size: 1.08rem;
+  font-weight: 500;
+}

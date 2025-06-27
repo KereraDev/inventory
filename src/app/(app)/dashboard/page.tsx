@@ -1,24 +1,21 @@
 'use client';
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useInventory } from "../../InventoryProvider";
 import styles from "./dashboard.module.css";
 import { IoCube, IoBusiness, IoWarning } from "react-icons/io5";
-
-const initialProducts = [
-  { id: 1, name: "Laptop HP Elite", description: "Laptop de 15 pulgadas con 8GB RAM", category: "Tecnología", price: 1200, stock: 15, supplierId: 1, status: "in-stock" },
-  { id: 2, name: "Mouse Inalámbrico", description: "Mouse ergonómico inalámbrico", category: "Tecnología", price: 25.99, stock: 42, supplierId: 1, status: "in-stock" },
-  { id: 3, name: "Teclado Mecánico", description: "Teclado mecánico retroiluminado", category: "Tecnología", price: 89.99, stock: 5, supplierId: 2, status: "low-stock" },
-  { id: 4, name: "Monitor 24\"", description: "Monitor Full HD 24 pulgadas", category: "Tecnología", price: 199.99, stock: 0, supplierId: 3, status: "out-of-stock" }
-];
-
-const initialSuppliers = [
-  { id: 1, name: "Tech Solutions SA", contact: "Juan Perez", phone: "555-123-4567", email: "info@techsolutions.com", address: "Av. Principal 123, Lima" },
-  { id: 2, name: "Electronic Parts", contact: "Maria Gomez", phone: "555-987-6543", email: "ventas@electronicparts.com", address: "Calle Secundaria 456, Lima" },
-  { id: 3, name: "Global Components", contact: "Carlos Ruiz", phone: "555-555-5555", email: "contacto@globalcomp.com", address: "Jr. Comercial 789, Lima" }
-];
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function Dashboard() {
-  const [products] = useState(initialProducts);
-  const [suppliers] = useState(initialSuppliers);
+  const { products, suppliers } = useInventory();
+  const [mounted, setMounted] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
 
   const lowStockCount = products.filter(p => p.status === "low-stock").length;
 
@@ -28,28 +25,42 @@ export default function Dashboard() {
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
           <h2 className={styles.sidebarHeaderTitle}>
-            <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/bab5cfed-f914-49cb-9aee-cf7ad1e542d0.png" alt="Logo" className={styles.sidebarLogo} />
+            {/* Nuevo icono tipo inventario */}
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{display:'block'}}>
+              <rect x="3" y="4" width="18" height="4" rx="1.5" fill="#3498db"/>
+              <rect x="3" y="10" width="18" height="4" rx="1.5" fill="#2980b9"/>
+              <rect x="3" y="16" width="18" height="4" rx="1.5" fill="#2471a3"/>
+              <rect x="7" y="6" width="2" height="2" rx="1" fill="#fff"/>
+              <rect x="7" y="12" width="2" height="2" rx="1" fill="#fff"/>
+              <rect x="7" y="18" width="2" height="2" rx="1" fill="#fff"/>
+            </svg>
             <span>InventarioApp</span>
           </h2>
         </div>
         <ul className={styles.navLinks}>
           <li>
-            <button className={`${styles.navLink} ${styles.navLinkActive}`}> {/* Puedes manejar el estado activo con useState */}
+            <Link className={styles.navLink} href="/dashboard">
               <span className={styles.navIcon}>📊</span>
               <span>Dashboard</span>
-            </button>
+            </Link>
           </li>
           <li>
-            <a href="/inventario" className={styles.navLink}>
+            <Link className={styles.navLink} href="/inventario">
               <span className={styles.navIcon}>📦</span>
               <span>Inventario</span>
-            </a>
+            </Link>
           </li>
           <li>
-            <button className={styles.navLink}>
+            <Link className={styles.navLink} href="/proveedores">
               <span className={styles.navIcon}>🏭</span>
               <span>Proveedores</span>
-            </button>
+            </Link>
+          </li>
+          <li>
+            <Link className={styles.navLink} href="/lotes">
+              <span className={styles.navIcon}>📦</span>
+              <span>Lotes</span>
+            </Link>
           </li>
         </ul>
       </aside>
@@ -62,7 +73,10 @@ export default function Dashboard() {
             <h1 className={styles.pageTitle}>Dashboard</h1>
           </div>
           <div>
-            <button className={styles.btnPrimary}>
+            <button
+              className={styles.btnPrimary}
+              onClick={() => router.push('/inventario?modal=add')}
+            >
               + Añadir Producto
             </button>
           </div>
@@ -104,8 +118,10 @@ export default function Dashboard() {
         {/* Tabla de productos recientes */}
         <div className={styles.tableContainer} style={{ marginTop: 30 }}>
           <div className={styles.cardHeader}>
-            <h3 className={styles.cardTitle}>Últimos Productos</h3>
-            <button className={`${styles.btn} ${styles.btnOutline} ${styles.btnSm}`}>Ver Todos</button>
+            <h3 className={styles.cardTitle2}>Últimos Productos</h3>
+            <Link href="/inventario" legacyBehavior>
+              <a className={`${styles.btn} ${styles.btnOutline} ${styles.btnSm}`}>Ver Todos</a>
+            </Link>
           </div>
           <table className={styles.table}>
             <thead>
@@ -115,7 +131,6 @@ export default function Dashboard() {
                 <th>Categoría</th>
                 <th>Stock</th>
                 <th>Estado</th>
-                <th className={styles.textRight}>Acciones</th>
               </tr>
             </thead>
             <tbody className={styles.tableBody}>
@@ -132,12 +147,6 @@ export default function Dashboard() {
                     }>
                       {product.status === 'in-stock' ? 'En Stock' : product.status === 'low-stock' ? 'Bajo Stock' : 'Agotado'}
                     </span>
-                  </td>
-                  <td className={styles.textRight}>
-                    <div className={styles.actions}>
-                      <button className={`${styles.btn} ${styles.btnOutline} ${styles.btnSm}`}>Editar</button>
-                      <button className={`${styles.btn} ${styles.btnDanger} ${styles.btnSm}`}>Eliminar</button>
-                    </div>
                   </td>
                 </tr>
               ))}
