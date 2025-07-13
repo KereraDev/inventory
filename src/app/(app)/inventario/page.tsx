@@ -8,6 +8,7 @@ import Link from "next/link";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
+import Swal from 'sweetalert2';
 
 export default function Inventario() {
   const { products, setProducts, suppliers, movements, setMovements, movementCounter, setMovementCounter } = useInventory();
@@ -360,34 +361,64 @@ export default function Inventario() {
       status: updatedProduct.status,
       movement: updatedProduct.movement,
     }, ...movements]);
+
+    // Actualizar el precio en los movimientos relacionados
+    setMovements(movements.map(mov =>
+      mov.id === editId
+        ? { ...mov, price: parseFloat(form.price || '0') }
+        : mov
+    ));
+
     setMovementCounter(movementCounter + 1);
     closeModal();
+    Swal.fire({
+      icon: 'success',
+      title: 'Producto actualizado',
+      text: `El producto "${form.name}" fue actualizado. Nuevo precio: ${new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(parseFloat(form.price || '0'))}`,
+      timer: 2500,
+      showConfirmButton: false
+    });
   }
 
   const handleDeleteProduct = (id: number) => {
-    if (window.confirm('¿Seguro que deseas eliminar este producto?')) {
-      const deletedProduct = products.find(p => p.id === id);
-      if (!deletedProduct) return;
-      setProducts(products.filter(p => p.id !== id));
-      setMovements([
-        {
-          movementId: movementCounter,
-          date: new Date().toLocaleDateString(), // Solo fecha
-          time: new Date().toLocaleTimeString(), // Solo hora
-          id: deletedProduct.id,
-          name: deletedProduct.name,
-          description: deletedProduct.description,
-          category: deletedProduct.category,
-          price: deletedProduct.price,
-          quantity: 0,
-          supplierId: deletedProduct.supplierId,
-          status: 'deleted',
-          movement: 'eliminado',
-        },
-        ...movements,
-      ]);
-      setMovementCounter(movementCounter + 1);
-    }
+    const deletedProduct = products.find(p => p.id === id);
+    if (!deletedProduct) return;
+    Swal.fire({
+      title: '¿Seguro que deseas eliminar este producto?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setProducts(products.filter(p => p.id !== id));
+        setMovements([
+          {
+            movementId: movementCounter,
+            date: new Date().toLocaleDateString(), // Solo fecha
+            time: new Date().toLocaleTimeString(), // Solo hora
+            id: deletedProduct.id,
+            name: deletedProduct.name,
+            description: deletedProduct.description,
+            category: deletedProduct.category,
+            price: deletedProduct.price,
+            quantity: 0,
+            supplierId: deletedProduct.supplierId,
+            status: 'deleted',
+            movement: 'eliminado',
+          },
+          ...movements,
+        ]);
+        setMovementCounter(movementCounter + 1);
+        Swal.fire({
+          icon: 'success',
+          title: 'Producto eliminado',
+          text: `El producto "${deletedProduct.name}" fue eliminado correctamente.`,
+          timer: 2500,
+          showConfirmButton: false
+        });
+      }
+    });
   };
 
   // Exportar movimientos a PDF
@@ -406,7 +437,7 @@ export default function Inventario() {
         m.name,
         m.description,
         m.category,
-        `$${m.price.toFixed(2)}`,
+        new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(m.price),
         suppliers.find(s => s.id === m.supplierId)?.name || 'N/A',
         m.status === 'in-stock' ? 'En Stock' : m.status === 'low-stock' ? 'Bajo Stock' : m.status === 'out-of-stock' ? 'Agotado' : m.status
       ]),
@@ -522,7 +553,7 @@ export default function Inventario() {
                     <td className={styles.productName}>{product.name}</td>
                     <td>{product.description}</td>
                     <td>{product.category}</td>
-                    <td>${product.price.toFixed(2)}</td>
+                    <td>{new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(product.price)}</td>
                     <td>{product.stock}</td>
                     <td>{supplier ? supplier.name : 'N/A'}</td>
                     <td>
@@ -700,7 +731,7 @@ export default function Inventario() {
                       <td className={styles.productName}>{movement.name}</td>
                       <td>{movement.description}</td>
                       <td>{movement.category}</td>
-                      <td>${movement.price.toFixed(2)}</td>
+                      <td>{new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(movement.price)}</td>
                       <td>{supplier ? supplier.name : 'N/A'}</td>
                       <td>
                         <span className={
